@@ -1,0 +1,413 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "username": {
+            "type": "string",
+            "defaultValue": "azureuser"
+        },
+        "password": {
+            "type": "securestring"
+        }
+    },
+    "variables": {
+        "deploymentUrl": "[deployment().properties.templateLink.uri]",
+        "westeuropeVnetName": "westeurope-vnet",
+        "westeuropeVnetAddressPrefix": "10.1.0.0/16",
+        "westeuropeVnetResourceId": "[resourceId('Microsoft.Network/virtualNetworks', variables('westeuropeVnetName'))]",
+        "westeuropeNSGName": "westeurope-nsg",
+        "westeuropeNSGResourceId": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('westeuropeNSGName'))]",
+        "westeuropeVMName": "westeurope-vm",
+        "westeuropeVMNicName": "westeurope-vm-nic",
+        "westeuropeVMNicPIPName": "westeurope-vm-nic-pip",
+        "westeuropeSubnetName": "westeurope-subnet",
+        "westeuropeSubnetPrefix": "10.1.0.0/24",
+        "westeuropeVMDNSName": "[concat(variables('westeuropeVMName'), '-', uniqueString(resourceGroup().id))]",
+        "westeuropeVMNicResourceId": "[resourceId('Microsoft.Network/networkInterfaces', variables('westeuropeVMNicName'))]",
+        "westeuropeVMNicPIPResourceId": "[resourceId('Microsoft.Network/publicIPAddresses', variables('westeuropeVMNicPIPName'))]",
+        "westeuropeSubnetResourceId": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('westeuropeVnetName'), variables('westeuropeSubnetName'))]",
+        "northeuropeVnetName": "northeurope-vnet",
+        "northeuropeVnetAddressPrefix": "10.2.0.0/16",
+        "northeuropeVnetResourceId": "[resourceId('Microsoft.Network/virtualNetworks', variables('northeuropeVnetName'))]",
+        "northeuropeNSGName": "northeurope-nsg",
+        "northeuropeNSGResourceId": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('northeuropeNSGName'))]",
+        "northeuropeVMName": "northeurope-vm",
+        "northeuropeVMNicName": "northeurope-vm-nic",
+        "northeuropeVMNicPIPName": "northeurope-vm-nic-pip",
+        "northeuropeSubnetName": "northeurope-subnet",
+        "northeuropeSubnetPrefix": "10.2.0.0/24",
+        "northeuropeVMDNSName": "[concat(variables('northeuropeVMName'), '-', uniqueString(resourceGroup().id))]",
+        "northeuropeVMNicResourceId": "[resourceId('Microsoft.Network/networkInterfaces', variables('northeuropeVMNicName'))]",
+        "northeuropeVMNicPIPResourceId": "[resourceId('Microsoft.Network/publicIPAddresses', variables('northeuropeVMNicPIPName'))]",
+        "northeuropeSubnetResourceId": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('northeuropeVnetName'), variables('northeuropeSubnetName'))]"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "name": "[variables('westeuropeNSGName')]",
+            "apiVersion": "2018-08-01",
+            "location": "westeurope",
+            "properties": {
+                "securityRules": [
+                    {
+                        "name": "http",
+                        "properties": {
+                            "protocol": "Tcp",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "80",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 300,
+                            "direction": "Inbound"
+                        }
+                    }
+                ]
+            },
+            "dependsOn": []
+        },
+        {
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "name": "[variables('northeuropeNSGName')]",
+            "apiVersion": "2018-08-01",
+            "location": "northeurope",
+            "properties": {
+                "securityRules": [
+                    {
+                        "name": "http",
+                        "properties": {
+                            "protocol": "Tcp",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "80",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 300,
+                            "direction": "Inbound"
+                        }
+                    }
+                ]
+            },
+            "dependsOn": []
+        },
+        {
+            "type": "Microsoft.Network/virtualNetworks",
+            "name": "[variables('westeuropeVnetName')]",
+            "apiVersion": "2018-08-01",
+            "location": "westeurope",
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[variables('westeuropeVnetAddressPrefix')]"
+                    ]
+                },
+                "subnets": [
+                    {
+                        "name": "[variables('westeuropeSubnetName')]",
+                        "properties": {
+                            "addressPrefix": "[variables('westeuropeSubnetPrefix')]"
+                        }
+                    }
+                ]
+            },
+            "dependsOn": []
+        },
+        {
+            "type": "Microsoft.Network/virtualNetworks",
+            "name": "[variables('northeuropeVnetName')]",
+            "apiVersion": "2018-08-01",
+            "location": "northeurope",
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[variables('northeuropeVnetAddressPrefix')]"
+                    ]
+                },
+                "subnets": [
+                    {
+                        "name": "[variables('northeuropeSubnetName')]",
+                        "properties": {
+                            "addressPrefix": "[variables('northeuropeSubnetPrefix')]"
+                        }
+                    }
+                ]
+            },
+            "dependsOn": []
+        },
+        {
+            "type": "Microsoft.Network/publicIPAddresses",
+            "sku": {
+                "name": "Basic",
+                "tier": "Regional"
+            },
+            "name": "[variables('westeuropeVMNicPIPName')]",
+            "apiVersion": "2018-08-01",
+            "location": "westeurope",
+            "properties": {
+                "publicIPAddressVersion": "IPv4",
+                "publicIPAllocationMethod": "Static",
+                "dnsSettings": {
+                    "domainNameLabel": "[variables('westeuropeVMDNSName')]"
+                }
+            },
+            "dependsOn": []
+        },
+        {
+            "type": "Microsoft.Network/publicIPAddresses",
+            "sku": {
+                "name": "Basic",
+                "tier": "Regional"
+            },
+            "name": "[variables('northeuropeVMNicPIPName')]",
+            "apiVersion": "2018-08-01",
+            "location": "northeurope",
+            "properties": {
+                "publicIPAddressVersion": "IPv4",
+                "publicIPAllocationMethod": "Static",
+                "dnsSettings":{
+                    "domainNameLabel": "[variables('northeuropeVMDNSName')]"
+                }
+            },
+            "dependsOn": []
+        },
+        {
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "[variables('westeuropeVMNicName')]",
+            "apiVersion": "2018-08-01",
+            "location": "westeurope",
+            "scale": null,
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "privateIPAddress": "10.1.0.4",
+                            "privateIPAllocationMethod": "Static",
+                            "publicIPAddress": {
+                                "id": "[variables('westeuropeVMNicPIPResourceId')]"
+                            },
+                            "subnet": {
+                                "id": "[variables('westeuropeSubnetResourceId')]"
+                            },
+                            "primary": true,
+                            "privateIPAddressVersion": "IPv4"
+                        }
+                    }
+                ],
+                "enableAcceleratedNetworking": false,
+                "enableIPForwarding": false,
+                "primary": true,
+                "networkSecurityGroup": {
+                    "id": "[variables('westeuropeNSGResourceId')]"
+                }
+            },
+            "dependsOn": [
+                "[variables('westeuropeVMNicPIPName')]",
+                "[variables('westeuropeVnetResourceId')]",
+                "[variables('westeuropeNSGResourceId')]"
+            ]
+        },
+        {
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "[variables('northeuropeVMNicName')]",
+            "apiVersion": "2018-08-01",
+            "location": "northeurope",
+            "scale": null,
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "privateIPAddress": "10.2.0.4",
+                            "privateIPAllocationMethod": "Static",
+                            "publicIPAddress": {
+                                "id": "[variables('northeuropeVMNicPIPResourceId')]"
+                            },
+                            "subnet": {
+                                "id": "[variables('northeuropeSubnetResourceId')]"
+                            },
+                            "primary": true,
+                            "privateIPAddressVersion": "IPv4"
+                        }
+                    }
+                ],
+                "enableAcceleratedNetworking": false,
+                "enableIPForwarding": false,
+                "primary": true,
+                "networkSecurityGroup": {
+                    "id": "[variables('northeuropeNSGResourceId')]"
+                }
+            },
+            "dependsOn": [
+                "[variables('northeuropeVMNicPIPName')]",
+                "[variables('northeuropeVnetResourceId')]",
+                "[variables('northeuropeNSGResourceId')]"
+            ]
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachines",
+            "name": "[variables('westeuropeVMName')]",
+            "apiVersion": "2018-06-01",
+            "location": "westeurope",
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "Standard_DS1_v2"
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "Canonical",
+                        "offer": "UbuntuServer",
+                        "sku": "18.04-LTS",
+                        "version": "latest"
+                    },
+                    "osDisk": {
+                        "osType": "Linux",
+                        "name": "[concat(variables('westeuropeVMName'), '-disk')]",
+                        "createOption": "FromImage",
+                        "caching": "ReadWrite",
+                        "managedDisk": {
+                            "storageAccountType": "Premium_LRS"
+                        },
+                        "diskSizeGB": 30
+                    },
+                    "dataDisks": []
+                },
+                "osProfile": {
+                    "computerName": "[variables('westeuropeVMName')]",
+                    "adminUsername": "[parameters('username')]",
+                    "adminPassword": "[parameters('password')]",
+                    "linuxConfiguration": {
+                        "disablePasswordAuthentication": false,
+                        "provisionVMAgent": true
+                    },
+                    "secrets": [],
+                    "allowExtensionOperations": true
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[variables('westeuropeVMNicResourceId')]"
+                        }
+                    ]
+                },
+                "diagnosticsProfile": {
+                    "bootDiagnostics": {
+                        "enabled": false
+                    }
+                }
+            },
+            "resources": [
+                {
+                    "type": "extensions",
+                    "name": "apache-ext",
+                    "apiVersion": "2018-10-01",
+                    "location": "westeurope",
+                    "properties": {
+                        "publisher": "Microsoft.Azure.Extensions",
+                        "type": "CustomScript",
+                        "typeHandlerVersion": "2.0",
+                        "autoUpgradeMinorVersion": true,
+                        "settings": {
+                            "skipDos2Unix": true
+                        },
+                        "protectedSettings": {
+                            "commandToExecute": "sh setup-nginx.sh westeurope",
+                            "fileUris": [
+                                "[uri(variables('deploymentUrl'), 'setup-nginx.sh')]"
+                            ]
+                        }
+                    },
+                    "dependsOn": [
+                        "[variables('westeuropeVMName')]"
+                    ]
+                }
+            ],
+            "dependsOn": [
+                "[variables('westeuropeVMNicName')]"
+            ]
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachines",
+            "name": "[variables('northeuropeVMName')]",
+            "apiVersion": "2018-06-01",
+            "location": "northeurope",
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "Standard_DS1_v2"
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "Canonical",
+                        "offer": "UbuntuServer",
+                        "sku": "18.04-LTS",
+                        "version": "latest"
+                    },
+                    "osDisk": {
+                        "osType": "Linux",
+                        "name": "[concat(variables('northeuropeVMName'), '-disk')]",
+                        "createOption": "FromImage",
+                        "caching": "ReadWrite",
+                        "managedDisk": {
+                            "storageAccountType": "Premium_LRS"
+                        },
+                        "diskSizeGB": 30
+                    },
+                    "dataDisks": []
+                },
+                "osProfile": {
+                    "computerName": "[variables('northeuropeVMName')]",
+                    "adminUsername": "[parameters('username')]",
+                    "adminPassword": "[parameters('password')]",
+                    "linuxConfiguration": {
+                        "disablePasswordAuthentication": false,
+                        "provisionVMAgent": true
+                    },
+                    "secrets": [],
+                    "allowExtensionOperations": true
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[variables('northeuropeVMNicResourceId')]"
+                        }
+                    ]
+                },
+                "diagnosticsProfile": {
+                    "bootDiagnostics": {
+                        "enabled": false
+                    }
+                }
+            },
+            "resources": [
+                {
+                    "type": "extensions",
+                    "name": "apache-ext",
+                    "apiVersion": "2018-10-01",
+                    "location": "northeurope",
+                    "properties": {
+                        "publisher": "Microsoft.Azure.Extensions",
+                        "type": "CustomScript",
+                        "typeHandlerVersion": "2.0",
+                        "autoUpgradeMinorVersion": true,
+                        "settings": {
+                            "skipDos2Unix": true
+                        },
+                        "protectedSettings": {
+                            "commandToExecute": "sh setup-nginx.sh northeurope",
+                            "fileUris": [
+                                "[uri(variables('deploymentUrl'), 'setup-nginx.sh')]"
+                            ]
+                        }
+                    },
+                    "dependsOn": [
+                        "[variables('northeuropeVMName')]"
+                    ]
+                }
+            ],
+            "dependsOn": [
+                "[variables('northeuropeVMNicName')]"
+            ]
+        }
+    ],
+    "outputs": {}
+}
